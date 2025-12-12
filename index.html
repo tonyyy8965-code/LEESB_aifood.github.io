@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💡 AI 레시피 파인더 - 냉장고를 부탁해 (수직형)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS 스타일링 */
+        :root {
+            --main-bg-color: #f7f7f7;
+            --card-bg-color: #ffffff;
+            --primary-color: #ff9933; /* 요리와 어울리는 따뜻한 주황색 */
+            --text-color: #333333;
+            --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius-base: 10px;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Roboto', sans-serif;
+            background-color: var(--main-bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 3px solid var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin: 0;
+            font-size: 2em;
+        }
+
+        /* 공통 섹션 스타일 */
+        .section-card {
+            background-color: var(--card-bg-color);
+            padding: 30px;
+            border-radius: var(--border-radius-base);
+            box-shadow: var(--shadow-light);
+        }
+
+        .section-card h2 {
+            color: var(--primary-color);
+            border-bottom: 2px dashed #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-weight: 400;
+        }
+
+        /* 입력 폼 스타일 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        /* 버튼 스타일 */
+        button#submit-button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            margin-top: 20px;
+        }
+
+        button#submit-button:hover {
+            background-color: #e68a2e;
+        }
+
+        button#submit-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+
+        /* 결과 출력 영역 */
+        #recipe-output {
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            background-color: #fcfcfc;
+        }
+
+        .loading-text {
+            color: #888;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .recipe-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-top: 10px;
+        }
+        
+        /* ******************************************* */
+        /* 추가 팁 항목 스타일링 강화 */
+        /* ******************************************* */
+        .tip-section {
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius-base);
+            background-color: #fffaf5; /* 부드러운 배경색 */
+        }
+        
+        .tip-section h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tip-section h3::before {
+            content: '👨‍🍳'; /* 셰프 이모지 */
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .tip-section p {
+            margin-bottom: 0;
+            font-style: italic;
+        }
+        
+        /* 레시피 본문 (pre 태그 내부) 스타일 */
+        #recipe-output pre {
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <header>
+            <h1>💡 AI 레시피 파인더</h1>
+            <p>냉장고 재료를 기반으로 구글 제미나이가 새로운 레시피를 제안해 드립니다.</p>
+        </header>
+
+        <section class="section-card input-section">
+            <h2>STEP 1. 재료 및 조건 입력</h2>
+            <form id="recipe-form">
+                
+                <div class="form-group">
+                    <label for="ingredients">나의 재료 (쉼표로 구분)</label>
+                    <input type="text" id="ingredients" name="ingredients" placeholder="예: 양파, 베이컨, 달걀, 파스타면" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="style">요리 스타일</label>
+                    <select id="style" name="style" required>
+                        <option value="">선택하세요</option>
+                        <option value="퓨전 이탈리안">퓨전 이탈리안</option>
+                        <option value="매콤한 한식">매콤한 한식</option>
+                        <option value="간단한 일식">간단한 일식</option>
+                        <option value="건강식">건강식</option>
+                        <option value="독창적인 베이킹">독창적인 베이킹</option>
+                        <option value="자유롭게">자유롭게</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="difficulty">난이도 / 소요 시간</label>
+                    <select id="difficulty" name="difficulty" required>
+                        <option value="">선택하세요</option>
+                        <option value="15분 이내 (초보자)">15분 이내 (초보자)</option>
+                        <option value="30분 이내 (초보자)">30분 이내 (초보자)</option>
+                        <option value="1시간 이내 (중급자)">1시간 이내 (중급자)</option>
+                        <option value="시간 제한 없음 (전문가)">시간 제한 없음 (전문가)</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="submit-button">AI 레시피 요청하기</button>
+            </form>
+        </section>
+
+        <section class="section-card result-section">
+            <h2>STEP 2. AI 레시피 결과</h2>
+            <div id="recipe-output">
+                <p class="loading-text">재료를 입력하고 요청 버튼을 누르면 이 곳에 레시피가 나타납니다.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // JavaScript 로직
+
+        /** * 핵심 요구 사항: API 서버의 주소를 담는 상수
+         */
+        const SERVER_URL = 'https://your-backend-api.com/generate-recipe'; 
+
+        const form = document.getElementById('recipe-form');
+        const outputDiv = document.getElementById('recipe-output');
+        const submitButton = document.getElementById('submit-button');
+
+
+        /**
+         * @function register
+         * 폼 데이터를 수집하여 서버로 비동기 POST 요청을 보내는 함수입니다.
+         */
+        async function register() {
+            const ingredients = document.getElementById('ingredients').value;
+            const style = document.getElementById('style').value;
+            const difficulty = document.getElementById('difficulty').value;
+
+            const dataToSend = {
+                ingredients: ingredients,
+                style: style,
+                difficulty: difficulty,
+            };
+
+            // UI 상태 변경: 버튼 비활성화 및 로딩 메시지 표시
+            submitButton.disabled = true;
+            outputDiv.innerHTML = '<p class="loading-text">🤖 AI가 냉장고 속 마법을 부리는 중입니다... 잠시만 기다려주세요.</p>';
+
+
+            try {
+                // 핵심 요구 사항: fetch 함수를 사용한 POST 통신
+                const response = await fetch(SERVER_URL, {
+                    method: 'POST', 
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // JSON 데이터 전송
+                    body: JSON.stringify(dataToSend),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // 실제 서버 응답을 출력하는 로직
+                displayRecipe(result.recipe_content, result.tip || null);
+
+            } catch (error) {
+                console.error('API 통신 오류 발생. (현재 SERVER_URL이 임시 주소이므로 예상된 오류입니다.)', error);
+                
+                // 통신 실패 시 시뮬레이션된 성공 응답 출력 (개발 테스트용)
+                simulateSuccess(dataToSend);
+
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        /**
+         * 개발 테스트를 위해 성공 결과를 시뮬레이션하는 함수
+         */
+        function simulateSuccess(inputData) {
+            const recipeTitle = `✨ 제미나이 특제 ${inputData.style} 요리: 베이컨 에그 라이스볼`;
+            const recipeContent = `
+[요리명]: ${recipeTitle}
+
+[사용된 재료]: ${inputData.ingredients}
+
+[요리 스타일]: ${inputData.style} (${inputData.difficulty})
+
+---
+
+**🔥 레시피 순서**
+
+1.  **재료 준비:** 양파는 잘게 다지고, 베이컨은 1cm 크기로 썰어줍니다. 달걀은 풀어서 소금 간을 해둡니다.
+2.  **볶기:** 팬에 기름을 두르고 다진 양파와 베이컨을 노릇하게 볶아줍니다. 밥을 넣고 굴 소스나 소금으로 간을 맞춰 고루 볶아줍니다.
+3.  **달걀:** 볶은 밥을 한쪽으로 밀고, 풀은 달걀물을 부어 스크램블 에그를 만듭니다. 밥과 함께 섞어줍니다.
+4.  **플레이팅:** 볶은 밥을 작은 공기에 담아 모양을 잡고 접시에 뒤집어 올려줍니다. 파슬리나 깨를 뿌려 마무리합니다.
+`; // 본문에서 팁 내용을 분리
+            const tip = "파스타면이 있다면 밥 대신 파스타를 삶아 '베이컨 에그 파스타'로 응용할 수도 있습니다. 소스 베이스를 크림이나 토마토로 바꾸면 또 다른 맛을 낼 수 있어요! 냉장고에 치즈가 있다면 마지막에 뿌려주면 풍미가 훨씬 살아납니다.";
+            
+            displayRecipe(recipeContent, tip);
+        }
+
+        /**
+         * 레시피 결과를 HTML에 출력하는 함수
+         */
+        function displayRecipe(recipeContent, tip) {
+            // 레시피 제목을 추출하여 별도의 스타일로 표시
+            const titleMatch = recipeContent.match(/\[요리명\]:\s*(.*)/);
+            const title = titleMatch ? titleMatch[1].trim() : "새로운 AI 레시피";
+
+            let html = `
+                <div class="recipe-title">${title}</div>
+                <pre>${recipeContent.trim()}</pre>
+            `;
+            
+            // ******************************************* // 추가 팁 항목을 별도의 .tip-section으로 강조하여 추가
+            // *******************************************
+            if (tip) {
+                html += `
+                    <div class="tip-section">
+                        <h3>셰프의 추가 팁</h3>
+                        <p>${tip}</p>
+                    </div>
+                `;
+            }
+
+            outputDiv.innerHTML = html;
+        }
+
+        /**
+         * 폼 제출 이벤트 핸들러
+         */
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // 기본 폼 제출 동작 방지
+            register();
+        });
+        
+    </script>
+</body>
+</html>
